@@ -42,6 +42,8 @@
 #include <signal.h>
 #include <unistd.h>
 #include "sl.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 void add_smoke(int y, int x);
 void add_man(int y, int x);
@@ -50,11 +52,13 @@ int add_D51(int x);
 int add_sl(int x);
 void option(char *str);
 int my_mvaddstr(int y, int x, char *str);
+void handlecore();
 
 int ACCIDENT  = 0;
 int LOGO      = 0;
 int FLY       = 0;
 int C51       = 0;
+int LOOP      = 0;
 
 int my_mvaddstr(int y, int x, char *str)
 {
@@ -67,7 +71,7 @@ int my_mvaddstr(int y, int x, char *str)
 
 void option(char *str)
 {
-    extern int ACCIDENT, LOGO, FLY, C51;
+    extern int ACCIDENT, LOGO, FLY, C51, LOOP;
 
     while (*str != '\0') {
         switch (*str++) {
@@ -75,21 +79,21 @@ void option(char *str)
             case 'F': FLY      = 1; break;
             case 'l': LOGO     = 1; break;
             case 'c': C51      = 1; break;
+            case 'p': 
+                LOOP  = 1; 
+                // printf("%s\n", *str );
+                if(*str != '\0' && *str == ' '){
+                    LOOP = 0;
+                    str++;
+                    
+                }
+                break;
             default:                break;
         }
     }
 }
-
-int main(int argc, char *argv[])
-{
-    int x, i;
-
-    for (i = 1; i < argc; ++i) {
-        if (*argv[i] == '-') {
-            option(argv[i] + 1);
-        }
-    }
-    initscr();
+void handlecore() {
+    int x;
     signal(SIGINT, SIG_IGN);
     noecho();
     curs_set(0);
@@ -112,8 +116,52 @@ int main(int argc, char *argv[])
         usleep(40000);
     }
     mvcur(0, COLS - 1, LINES - 1, 0);
-    endwin();
 
+}
+int main(int argc, char *argv[])
+{
+    int i;
+    int prev_loop = 0;
+    for (i = 1; i < argc; ++i) {
+        if (*argv[i] == '-') {
+            option(argv[i] + 1);
+        }
+        if(LOOP == 1 && prev_loop == 0){
+            prev_loop = 1; // Only run the code once if there was a loop the previous round
+            i+=1;
+            while(i < argc && argv[i] != NULL && *argv[i] != '\0') {
+                LOOP += atoi(argv[i]);
+                i++;
+            }
+        }
+    }
+    initscr();
+    if(LOOP == 0){
+        handlecore();
+    } else {
+        for(int j=0; j < LOOP; j++) {
+            FLY = 0;
+            LOGO = 0;
+            C51 = 0;
+            ACCIDENT = 1;
+            switch(j%4) {
+                case 0:
+                    ACCIDENT = 1;
+                break;
+                case 1:
+                    FLY = 1;
+                break;
+                case 2:
+                    LOGO = 1;
+                break;
+                case 3:
+                    C51 = 1;
+                break;
+            }
+            handlecore();
+        }
+    }
+    endwin();
     return 0;
 }
 
@@ -242,7 +290,7 @@ int add_C51(int x)
 
 void add_man(int y, int x)
 {
-    static char *man[2][2] = {{"", "(O)"}, {"Help!", "\\O/"}};
+    static char *man[2][2] = {{"", "(O)"}, {"WOW!", "\\O/"}};
     int i;
 
     for (i = 0; i < 2; ++i) {
